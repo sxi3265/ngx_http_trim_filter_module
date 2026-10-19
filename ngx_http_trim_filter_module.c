@@ -87,7 +87,8 @@ ngx_http_trim_equal(const u_char *s, size_t n, const char *word)
  * makes the remainder pass through: later bytes may depend on its context.
  */
 static ngx_uint_t
-ngx_http_trim_tag_scan(ngx_http_trim_parser_t *ctx, u_char *dst, size_t *written)
+ngx_http_trim_tag_scan(ngx_http_trim_parser_t *ctx, u_char *dst,
+    size_t *written)
 {
     const u_char  *s;
     size_t         i, j, name, end, attr, value, value_len, out;
@@ -613,8 +614,8 @@ typedef struct {
     ngx_http_trim_parser_t   parser;
     ngx_chain_t             *free;
     ngx_chain_t             *busy;
-    off_t                   tin;
-    off_t                   tout;
+    off_t                    tin;
+    off_t                    tout;
 } ngx_http_trim_ctx_t;
 
 
@@ -717,10 +718,10 @@ ngx_module_t  ngx_http_trim_filter_module = {
 
 
 static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
-static ngx_http_output_body_filter_pt   ngx_http_next_body_filter;
+static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
 
 
-static ngx_http_variable_t ngx_http_trim_vars[] = {
+static ngx_http_variable_t  ngx_http_trim_vars[] = {
 
     { ngx_string("trim_bytes"), NULL,
       ngx_http_trim_bytes_variable, 0, 0, 0 },
@@ -824,7 +825,7 @@ ngx_http_trim_consume(ngx_chain_t *in)
 {
     ngx_buf_t  *b;
 
-    for ( ; in; in = in->next) {
+    for ( /* void */ ; in; in = in->next) {
         b = in->buf;
         if (ngx_buf_size(b) != 0) {
             break;
@@ -1074,7 +1075,8 @@ ngx_http_trim_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #if (NGX_RESTY_EXT && NGX_EXPR)
     if (ngx_conf_merge_expr_flag_value(cf, &conf->trim, prev->trim, 0) != NGX_OK
         || ngx_conf_merge_expr_flag_value(cf, &conf->js, prev->js, 0) != NGX_OK
-        || ngx_conf_merge_expr_flag_value(cf, &conf->css, prev->css, 0) != NGX_OK)
+        || ngx_conf_merge_expr_flag_value(cf, &conf->css, prev->css, 0)
+           != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
