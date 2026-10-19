@@ -13,8 +13,6 @@
 #endif
 
 
-#define NGX_HTTP_TRIM_FLAG      "http_trim"
-
 #define NGX_HTTP_TRIM_SAVE_SLASH        -1
 #define NGX_HTTP_TRIM_SAVE_JSCSS        -2
 #define NGX_HTTP_TRIM_SAVE_SPACE        -3
@@ -306,8 +304,9 @@ static ngx_http_variable_t ngx_http_trim_vars[] = {
 static ngx_int_t
 ngx_http_trim_header_filter(ngx_http_request_t *r)
 {
-    ngx_int_t                  rc;
+#if !(NGX_RESTY_EXT && NGX_EXPR)
     ngx_str_t                  flag;
+#endif
     ngx_http_trim_ctx_t       *ctx;
     ngx_http_trim_loc_conf_t  *conf;
 
@@ -324,16 +323,6 @@ ngx_http_trim_header_filter(ngx_http_request_t *r)
         || (r->headers_out.content_encoding
             && r->headers_out.content_encoding->value.len)
         || ngx_http_test_content_type(r, &conf->types) == NULL)
-    {
-        return ngx_http_next_header_filter(r);
-    }
-
-    rc = ngx_http_arg(r, (u_char *) NGX_HTTP_TRIM_FLAG,
-                      sizeof(NGX_HTTP_TRIM_FLAG) - 1, &flag);
-
-    if(rc == NGX_OK
-       && flag.len == sizeof("off") - 1
-       && ngx_strncmp(flag.data, "off", sizeof("off") - 1) == 0)
     {
         return ngx_http_next_header_filter(r);
     }

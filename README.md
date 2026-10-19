@@ -36,7 +36,7 @@ switch. `trim_js` and `trim_css` take effect only when `trim` is enabled.
 
 Variables are rejected in these builds. Without either extension,
 complex values and variables retain their original behavior. `trim_types`
-and the `http_trim=off` query parameter are unchanged.
+is unchanged.
 
 ## Directives
 
@@ -91,11 +91,6 @@ Parameter value can contain variables in builds without conditional support.
 Enable trim module for the specified MIME types in addition to "text/html". Responses with the “text/html” type are always processed.  
 <br/>
 
-
-## Debug
-
-Trim module will be disabled if incoming request has `http_trim=off` parameter in url.   
-e.g.  `http://www.xxx.com/index.html?http_trim=off`  
 
 ## Sample
 original:

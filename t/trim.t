@@ -233,7 +233,7 @@ is good to see you </body>
 is good to see you </body>
 
 
-=== TEST 10: if $arg_http_trim is off, trim off.
+=== TEST 10: http_trim query parameter does not disable configured trim
 --- config
     trim on;
     trim_js on;
@@ -250,9 +250,8 @@ is good to see you </body>
     GET /t/trim.html?http_trim=off&hello=world
 --- response_body
 <!DOCTYPE html>
-<body>hello   world,   it
-   is good  to     see you   </body>
-<!-- trimoff -->
+<body>hello world, it
+is good to see you </body>
 
 === TEST 11: trim javascript comment
 --- config

@@ -69,7 +69,7 @@ my @parent_cases = (
 my $requests = 0;
 $requests += @{$_->[2]} for (@cases, @parent_cases);
 my $t = Test::Nginx->new()->has(qw/http rewrite proxy trim_filter
-    ngx_expr_module/)->plan($requests * 2 + 18);
+    ngx_expr_module/)->plan($requests * 2 + 20);
 
 my $locations = locations(\@cases);
 my $parent_locations = locations(\@parent_cases);
@@ -167,9 +167,13 @@ for my $case (['', '111'], ['a=1', '101'], ['b=1', '110'], ['a=1&b=1', '100']) {
     is(body(get('/nested/child?' . $case->[0], 8081)), expected($case->[1]),
         'nested per-switch inheritance ' . $case->[0]);
 }
-is(body(get('/fixed?http_trim=off')), $raw, 'query bypass is preserved');
-is(body(get('/fixed?http_trim=on')), expected('111'), 'query on does not bypass');
-is(body(get('/off?http_trim=on')), $raw, 'query on does not enable trim');
+is(body(get('/fixed?http_trim=off')), expected('111'), 'query off does not disable trim');
+is(body(get('/fixed?http_trim=on')), expected('111'), 'query on leaves trim enabled');
+is(body(get('/off?http_trim=on')), $raw, 'query on leaves trim disabled');
+is(body(get('/conditional?a=1&http_trim=off')), expected('111'),
+    'query off leaves matching trim condition enabled');
+is(body(get('/conditional?http_trim=off')), $raw,
+    'query off leaves nonmatching trim condition disabled');
 is(body(get('/plain')), $raw, 'unlisted content type bypasses trim');
 is(body(get('/plain_enabled')), expected('100'), 'trim_types still adds MIME types');
 is(body(get('/encoded')), $raw, 'encoded response bypasses trim');
