@@ -46,17 +46,10 @@ typedef enum {
 } ngx_http_trim_state_e;
 
 
-static u_char
-ngx_http_trim_lower(u_char c)
-{
-    return (c >= 'A' && c <= 'Z') ? (u_char) (c | 0x20) : c;
-}
-
-
 static ngx_uint_t
 ngx_http_trim_is_alpha(u_char c)
 {
-    c = ngx_http_trim_lower(c);
+    c = ngx_tolower(c);
 
     return c >= 'a' && c <= 'z';
 }
@@ -79,7 +72,7 @@ ngx_http_trim_equal(const u_char *s, size_t n, const char *word)
     }
 
     for (i = 0; i < n; i++) {
-        if (ngx_http_trim_lower(s[i]) != (u_char) word[i]) {
+        if (ngx_tolower(s[i]) != (u_char) word[i]) {
             return 0;
         }
     }
@@ -448,7 +441,7 @@ ngx_http_trim_parse(ngx_http_trim_parser_t *ctx, const u_char *src, size_t len,
                     ctx->state = ngx_http_trim_state_comment;
                 }
 
-            } else if (ctx->len == 3 && ngx_http_trim_lower(c) == 'd') {
+            } else if (ctx->len == 3 && ngx_tolower(c) == 'd') {
                 ctx->state = ngx_http_trim_state_declaration;
                 ctx->quote = 0;
 
@@ -534,7 +527,7 @@ ngx_http_trim_parse(ngx_http_trim_parser_t *ctx, const u_char *src, size_t len,
             n = ctx->len;
             if ((n == 1 && c == '/')
                 || (n >= 2 && n < ctx->raw_len + 2
-                    && ngx_http_trim_lower(c) == (u_char) ctx->raw[n - 2]))
+                    && ngx_tolower(c) == (u_char) ctx->raw[n - 2]))
             {
                 ctx->pending[ctx->len++] = c;
 
