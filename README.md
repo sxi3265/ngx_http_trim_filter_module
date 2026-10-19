@@ -134,14 +134,12 @@ Existing configuration, conditional selection and `$trim_bytes` /
 `t/trim.t` retains the original fixtures with semantics-preserving expectations.
 `t/safety.t` covers the corrected response behavior with OpenResty's `test-nginx`.
 Set `TEST_NGINX_EXPR=1` for conditional builds; leave it unset otherwise.
-The two `t/condition_trim*.t` suites use the official `nginx-tests` harness.
+The `t/condition_trim*.t`, `t/semantics.t` and `t/stream.t` suites use the
+official `nginx-tests` harness. They verify configuration, response semantics,
+chunked upstream responses, incomplete tokens at EOF, early output and slow
+downstream consumers through a running nginx instance.
 
-`t/parser.t` compiles tests against the same implementation in the module's
-single C file. Set `NGINX_SOURCE` to the configured nginx source tree, including
-`objs/ngx_auto_config.h`, and use that build's include paths when it has extra
-modules. It checks explicit semantic fixtures at every split point and runs
-100,000 deterministic binary/mutation inputs. `t/fuzz_parser.c` also exports
-`LLVMFuzzerTestOneInput` for libFuzzer with ASan/UBSan.
-
-`t/stream.t` uses Python 3's standard library to verify chunked producers,
-incomplete tokens at EOF, early output and a slow downstream consumer.
+Set `TEST_NGINX_BINARY` to the nginx binary built with this module and
+`PERL5LIB` to the appropriate harness's `lib` directory. For a dynamic build,
+add its `load_module` directive to `TEST_NGINX_GLOBALS` for `nginx-tests`,
+or set `TEST_NGINX_LOAD_MODULES` for OpenResty's `test-nginx`.

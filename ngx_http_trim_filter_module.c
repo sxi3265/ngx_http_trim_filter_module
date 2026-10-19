@@ -8,7 +8,7 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#if (NGX_RESTY_EXT && NGX_EXPR) && !defined(NGX_HTTP_TRIM_TEST)
+#if (NGX_RESTY_EXT && NGX_EXPR)
 #include <ngx_http_expr_module.h>
 #endif
 
@@ -593,9 +593,6 @@ ngx_http_trim_finish(ngx_http_trim_parser_t *ctx, u_char *dst)
 }
 
 
-#ifndef NGX_HTTP_TRIM_TEST
-
-
 typedef struct {
     ngx_hash_t                   types;
     ngx_array_t                 *types_keys;
@@ -1110,5 +1107,3 @@ ngx_http_trim_filter_init(ngx_conf_t *cf)
 
     return NGX_OK;
 }
-
-#endif /* NGX_HTTP_TRIM_TEST */
