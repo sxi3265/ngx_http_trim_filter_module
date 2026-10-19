@@ -143,3 +143,11 @@ Set `TEST_NGINX_BINARY` to the nginx binary built with this module and
 `PERL5LIB` to the appropriate harness's `lib` directory. For a dynamic build,
 add its `load_module` directive to `TEST_NGINX_GLOBALS` for `nginx-tests`,
 or set `TEST_NGINX_LOAD_MODULES` for OpenResty's `test-nginx`.
+
+GitHub Actions runs these suites on pushes, pull requests and manual dispatch.
+The matrix builds nginx 1.31.7 with static and dynamic trim modules, plus
+nginx-ext with `ngx_expr_module` for the conditional configuration tests.
+Each job saves build details, dependency revisions and test logs as artifacts.
+With the workflow's dependencies checked out under `.ci/`, run the same build
+and tests locally with `bash util/run-tests.sh`; set `TEST_MODULE_LINK=dynamic`
+for a dynamic build or `TEST_EXPR=enabled` for the nginx-ext configuration.

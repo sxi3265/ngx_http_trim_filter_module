@@ -1,0 +1,106 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: nginx-static
+            nginx_repository: nginx/nginx
+            nginx_ref: release-1.31.7
+            expr: disabled
+            link: static
+          - name: nginx-dynamic
+            nginx_repository: nginx/nginx
+            nginx_ref: release-1.31.7
+            expr: disabled
+            link: dynamic
+          - name: nginx-ext-expr
+            nginx_repository: HanadaLee/nginx-ext
+            # nginx-ext 1.31.7, including conditional directive support.
+            nginx_ref: 6b68dccc6dd0ef559b7f98a65dc57db24ae23d2a
+            expr: enabled
+            link: static
+    steps:
+      - name: Check out module
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Check out nginx
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ matrix.nginx_repository }}
+          ref: ${{ matrix.nginx_ref }}
+          path: .ci/nginx
+          persist-credentials: false
+
+      - name: Check out ngx_expr_module
+        if: matrix.expr == 'enabled'
+        uses: actions/checkout@v6
+        with:
+          repository: HanadaLee/ngx_expr_module
+          ref: '1.0.0'
+          path: .ci/ngx_expr_module
+          persist-credentials: false
+
+      - name: Check out nginx-tests
+        uses: actions/checkout@v6
+        with:
+          repository: nginx/nginx-tests
+          ref: ec44bc80c4bfac1dbd8ffee3875101285f8502ac
+          path: .ci/nginx-tests
+          persist-credentials: false
+
+      - name: Check out test-nginx
+        uses: actions/checkout@v6
+        with:
+          repository: openresty/test-nginx
+          ref: 8398ecbf08c419be4acf85d078b372c3b1be988a
+          path: .ci/test-nginx
+          persist-credentials: false
+
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libpcre2-dev libssl-dev zlib1g-dev perl \
+            libtest-base-perl libtext-diff-perl libtest-longstring-perl \
+            libwww-perl libipc-run-perl libio-socket-ssl-perl \
+            liblist-moreutils-perl libnet-dns-perl
+
+      - name: Build and test
+        env:
+          TEST_EXPR: ${{ matrix.expr }}
+          TEST_MODULE_LINK: ${{ matrix.link }}
+        run: bash util/run-tests.sh
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            .ci/test-output/**/*.log
+            .ci/test-output/*.txt
+            .ci/test-output/results.tsv
+            .ci/test-output/exit-code
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 7
