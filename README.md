@@ -1,9 +1,13 @@
 # Ngx_http_trim_filter module
 
-The ngx_http_trim_filter module is a filter that modifies a response by removing unnecessary whitespaces 
-(spaces, tabs, newlines) and comments from HTML (including inline javascript and css). Trim module parses 
-HTML with a state machine.
+The ngx_http_trim_filter module incrementally removes ordinary HTML comments
+and redundant whitespace in tag syntax. Text, attribute values and line
+terminators retain their meaning. Inline JavaScript and CSS can also have
+redundant horizontal separators reduced.
 
+The module automatically preserves content when its grammar cannot be
+determined safely. Existing switches select which content to process; there
+is no aggressive mode or additional safety setting.
 
 ## Example Configuration
 
@@ -46,8 +50,9 @@ is unchanged.
 
 **Context:** `http, server, location` 
      
-Enable or disable trim module for pure HTML.  
-This module will retain some contents unchanged, in case that they are enclosed by the tag `pre`,`textarea`,`script` and `style`,as well as IE/SSI/ESI comments.  
+Enable or disable HTML filtering. Text whitespace is preserved, including
+whitespace affected by external CSS. Raw-text/RCDATA elements and IE/SSI/ESI
+comments are protected.
 Parameter value can contain variables in builds without conditional support.
 
 Example for those builds:
@@ -66,7 +71,10 @@ Example for those builds:
 
 **Context:** `http, server, location` 
      
-Enable or disable trim module for inline javascript.  
+Enable or disable reduction of repeated horizontal separators in recognized
+inline JavaScript. Strings and all line terminators are preserved. Templates,
+slashes and escapes automatically stop reduction for the remaining script;
+comments are retained so tokens and automatic semicolon insertion are unchanged.
 Parameter value can contain variables in builds without conditional support.
 <br/>
 
@@ -77,7 +85,9 @@ Parameter value can contain variables in builds without conditional support.
 
 **Context:** `http, server, location` 
      
-Enable or disable trim module for inline css.  
+Enable or disable reduction of repeated horizontal separators in recognized
+inline CSS. Strings are preserved. Comments, escapes and dashed names
+(including custom properties) automatically preserve the remaining style body.
 Parameter value can contain variables in builds without conditional support.
 <br/>
 
@@ -92,105 +102,46 @@ Enable trim module for the specified MIME types in addition to "text/html". Resp
 <br/>
 
 
-## Sample
-original:
+## Processing rules
 
-    <!DOCTYPE html>
-    <textarea  >
-       trim
-            module
-    </textarea  >
-    <!--remove all-->
-    <!--[if IE]> trim module <![endif]-->
-    <!--[if !IE ]>--> trim module  <!--<![endif]-->
-    <!--# ssi-->
-    <!--esi-->
-    <pre    style  =
-        "color:   blue"  >Welcome    to    nginx!</pre  >
-    <script type="text/javascript">
-    /***  muitl comment 
-                       ***/
-    //// single comment
-    str.replace(/     /,"hello");
-    </script>
-    <style   type="text/css"  >
-    /*** css comment
-                     ! ***/
-    body
-    {
-      font-size:  20px ;
-      line-height: 150% ;
-    }
-    </style>
-    
-result:
+- HTML character data is preserved, including spaces between inline elements.
+- Only validated tag syntax is compacted; quoted and unquoted attribute values
+  remain unchanged. Attribute quotes and boolean values are not removed.
+- Ordinary HTML comments are removed without inserting whitespace. Conditional,
+  SSI/ESI and common hydration marker comments are retained.
+- `title`, `textarea`, `xmp`, `iframe`, `noembed` and `noframes` bodies are
+  preserved. Names and closing-tag boundaries are matched case insensitively.
+- Inline JS/CSS processing never joins tokens or removes line terminators.
+  Ambiguous constructs are preserved automatically, even with both switches on.
+- Foreign content, tree-dependent markup and malformed structures cause
+  the remaining response to pass through unchanged.
+- At most 4 KiB of an unfinished tag or comment is retained. Larger tokens
+  trigger pass-through. Incomplete tokens are emitted unchanged at EOF.
+- Filtering weakens ETags and clears Content-Length and Accept-Ranges.
+- Encoded bodies, HEAD/header-only responses, subrequests and non-200 responses
+  are passed through. Main response processing remains incremental.
 
-    <!DOCTYPE html>
-    <textarea>
-       trim  
-            module
-    </textarea>
-    <!--[if IE]> trim module <![endif]-->
-    <!--[if !IE ]>--> trim module  <!--<![endif]-->
-    <!--# ssi-->
-    <!--esi-->
-    <pre style="color:   blue">Welcome    to    nginx!</pre>
-    <script type="text/javascript">str.replace(/     /,"hello");</script>
-    <style type="text/css">body{font-size:20px;line-height:150%;}</style>
+`trim_types` selects HTML response MIME types; it does not select a standalone
+JavaScript, CSS, JSON or XML parser.
 
-
-## Trim Rule
-
-### Html
-##### Whitespace
-+ Remove '\r'.
-+ Replace '\t' with space.
-+ Replace multiple spaces with a single space.
-+ Replace multiple '\n' with a single '\n'.
-+ Replace multiple '\n' and '\t' in tag with a single space.
-+ Do not trim quoted strings in tag.
-+ Do not trim the contents enclosed by the tag `pre`,`textarea`,`script` and `style`.
-
-##### Comment
-+ Remove html comment(`<!-- -->`).
-+ Do not trim IE/SSI/ESI comments.  
-  IE comment: `<!--[if  <![endif]-->`  
-  SSI comment: `<!--#  -->`  
-  ESI comment: `<!--esi  -->`  
-
-
-### Javascript
-Contents enclosed by `<script type="text/javascript">` or `<script>` will be identified as javascript.
-
-##### Whitespace
-+ Remove '\r'.
-+ Remove '\t','\n' and space that behind '(',',','=',':','[','!','&','|','?',';','>','~','*','{'.
-+ Replace multiple spaces with a single space.
-+ Do not trim quoted strings and regular expression literals.
-
-##### Comment
-+ Remove single comment. `//`
-+ Remove multi comment. `/*  */`
-
-
-### Css
-Contents enclosed by `<style type="text/css">` or `<style>` will be identified as css.
-
-##### Whiltespace
-+ Remove '\r'.
-+ Remove '\t','\n' and space that around ';','>','{','}',':',','.
-+ Replace multiple '\n' and spaces with a single space.
-+ Do not trim quoted strings.
-
-##### Comment
-+ Remove css comment(`/* */`).
-+ Do not remove child seletor and IE5 /Mac hack comments.  
-  Child seletor hack: `html>/**/body p{color:blue}`  
-  IE5 /Mac hack: `/*\*/.selector{color:khaki}/**/`  
+Compared with the original Tengine algorithm, text whitespace and ambiguous
+script/style content may now be larger because their semantics are preserved.
+Existing configuration, conditional selection and `$trim_bytes` /
+`$trim_original_bytes` accounting remain supported.
 
 ## Tests
 
-`t/trim.t` uses OpenResty's `test-nginx` harness. Set `TEST_NGINX_EXPR=1`
-when running it against a build with conditional support; leave it unset
-otherwise. The two `t/condition_trim*.t` suites use the official
-`nginx-tests` harness and require `ngx_expr_module`.
+`t/trim.t` retains the original fixtures with semantics-preserving expectations.
+`t/safety.t` covers the corrected response behavior with OpenResty's `test-nginx`.
+Set `TEST_NGINX_EXPR=1` for conditional builds; leave it unset otherwise.
+The two `t/condition_trim*.t` suites use the official `nginx-tests` harness.
+
+`t/parser.t` compiles tests against the same implementation in the module's
+single C file. Set `NGINX_SOURCE` to the configured nginx source tree, including
+`objs/ngx_auto_config.h`, and use that build's include paths when it has extra
+modules. It checks explicit semantic fixtures at every split point and runs
+100,000 deterministic binary/mutation inputs. `t/fuzz_parser.c` also exports
+`LLVMFuzzerTestOneInput` for libFuzzer with ASan/UBSan.
+
+`t/stream.t` uses Python 3's standard library to verify chunked producers,
+incomplete tokens at EOF, early output and a slow downstream consumer.

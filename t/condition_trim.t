@@ -12,8 +12,8 @@ use lib 'lib';
 use Test::Nginx;
 
 my $raw = '<p>hello   world</p><!-- html -->'
-    . '<script>/* js */var x=  1;</script>'
-    . '<style>/* css */p { color: red; }</style>'
+    . '<script>var  x=  1;/* js */</script>'
+    . '<style>p  { color:  red; }/* css */</style>'
     . '<pre>a   b</pre><textarea>c   d</textarea>';
 
 # Each expected mask is trim/trim_js/trim_css.  JS and CSS never enable HTML
@@ -212,9 +212,9 @@ sub body {
 sub expected {
     my ($mask) = @_;
     return $raw unless substr($mask, 0, 1);
-    return '<p>hello world</p><script>'
-        . (substr($mask, 1, 1) ? 'var x=1;' : '/* js */var x=  1;')
+    return '<p>hello   world</p><script>'
+        . (substr($mask, 1, 1) ? 'var x= 1;/* js */' : 'var  x=  1;/* js */')
         . '</script><style>'
-        . (substr($mask, 2, 1) ? 'p{color:red;}' : '/* css */p { color: red; }')
+        . (substr($mask, 2, 1) ? 'p { color: red; }/* css */' : 'p  { color:  red; }/* css */')
         . '</style><pre>a   b</pre><textarea>c   d</textarea>';
 }
