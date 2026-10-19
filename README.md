@@ -13,6 +13,31 @@ HTML with a state machine.
         trim_css on;
     }
 
+## Conditional Configuration
+
+When built with both `NGX_RESTY_EXT` and `ngx_expr_module`, `trim`, `trim_js`
+and `trim_css` accept literal `on` or `off` values and can be used inside
+`when` blocks at the `http`, `server` and `location` levels:
+
+```nginx
+expr compact str_eq $arg_compact 1;
+when compact {
+    trim on;
+    trim_js on;
+    trim_css on;
+}
+```
+
+At each configuration level, the first matching setting is used. An
+unconditional setting also matches, so place it after conditional settings
+to use it as a fallback. If no setting matches, the parent setting is used.
+Each switch is inherited independently, and a matching `off` disables that
+switch. `trim_js` and `trim_css` take effect only when `trim` is enabled.
+
+Variables are rejected in these builds. Without either extension,
+complex values and variables retain their original behavior. `trim_types`
+and the `http_trim=off` query parameter are unchanged.
+
 ## Directives
 
 **trim** `on` | `off`
@@ -23,8 +48,9 @@ HTML with a state machine.
      
 Enable or disable trim module for pure HTML.  
 This module will retain some contents unchanged, in case that they are enclosed by the tag `pre`,`textarea`,`script` and `style`,as well as IE/SSI/ESI comments.  
-Parameter value can contain variables.  
-Example:  
+Parameter value can contain variables in builds without conditional support.
+
+Example for those builds:
 
     set $flag "off";
     if ($condition) {
@@ -41,7 +67,7 @@ Example:
 **Context:** `http, server, location` 
      
 Enable or disable trim module for inline javascript.  
-Parameter value can contain variables too.  
+Parameter value can contain variables in builds without conditional support.
 <br/>
 
 
@@ -52,7 +78,7 @@ Parameter value can contain variables too.
 **Context:** `http, server, location` 
      
 Enable or disable trim module for inline css.  
-Parameter value can contain variables too.  
+Parameter value can contain variables in builds without conditional support.
 <br/>
 
 
@@ -166,3 +192,10 @@ Contents enclosed by `<style type="text/css">` or `<style>` will be identified a
 + Do not remove child seletor and IE5 /Mac hack comments.  
   Child seletor hack: `html>/**/body p{color:blue}`  
   IE5 /Mac hack: `/*\*/.selector{color:khaki}/**/`  
+
+## Tests
+
+`t/trim.t` uses OpenResty's `test-nginx` harness. Set `TEST_NGINX_EXPR=1`
+when running it against a build with conditional support; leave it unset
+otherwise. The two `t/condition_trim*.t` suites use the official
+`nginx-tests` harness and require `ngx_expr_module`.

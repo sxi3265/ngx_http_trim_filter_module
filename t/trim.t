@@ -740,8 +740,23 @@ h1 > strong {  color : red  ; }
 <style>body{font-size:20px;line-height:150%;}body{font-size:20px;line-height:150%;}body{font-size:20px;line-height:150%;}body{font-size:20px;line-height:150%;}h1>strong{color:red;}.skin-1388458850088 .nav .sm-item-list{border-bottom:2px solid #ee5e80;}.skin-1388458850088 .nav .search-wrap a.local,.skin-1388458850088 .nav .search-wrap a.local:hover{background:#ee5e80;}</style>
 
 
-=== TEST 27: variable value
---- config
+=== TEST 27: conditional switches or variable value
+--- config eval
+$ENV{TEST_NGINX_EXPR} ? <<'EXPR_CONFIG' : <<'LEGACY_CONFIG';
+    trim on;
+    trim_js on;
+    trim_css on;
+    expr trim_disabled str_eq $arg_a 1;
+    location /trim.html { trim off; }
+    location /t/ {
+        proxy_buffering off;
+        proxy_pass http://127.0.0.1:$TEST_NGINX_TRIM_PORT/;
+        when trim_disabled {
+            trim_js off;
+            trim_css off;
+        }
+    }
+EXPR_CONFIG
     trim on;
     trim_js on;
     trim_css on;
@@ -757,6 +772,7 @@ h1 > strong {  color : red  ; }
         trim_js $trim;
         trim_css $trim;
     }
+LEGACY_CONFIG
 --- user_files
 >>> trim.html
 <!DOCTYPE html>
